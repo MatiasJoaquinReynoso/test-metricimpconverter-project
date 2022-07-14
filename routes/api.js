@@ -1,35 +1,54 @@
-"use strict";
+'use strict';
 
-const expect = require("chai").expect;
-const ConvertHandler = require("../controllers/convertHandler.js");
+const expect = require('chai').expect;
+const ConvertHandler = require('../controllers/convertHandler.js');
 
 module.exports = function (app) {
+
   let convertHandler = new ConvertHandler();
 
-  app.route("/api/convert").get(function (req, res) {
+  app.route('/api/convert').get((req, res) => {
     let input = req.query.input;
-    let initNum = convertHandler.getNum(input);
-    let initUnit = convertHandler.getUnit(input);
-    if (!initNum && !initUnit) {
-      res.send("invalid number and unit");
-      return;
-    } else if (!initNum) {
-      res.send("invalid number");
-      return;
-    } else if (!initUnit) {
-      res.send("invalid unit");
-      return;
+    let number = input.match(/[.\d\/]+/g) || [''];
+    let unit = input.match(/[a-z]+/ig) || undefined;
+    //catch some invalid inputs
+    if (!unit) {
+      return res.send('invalid unit');
     }
-    let returnNum = convertHandler.convert(initNum, initUnit);
-    let returnUnit = convertHandler.getReturnUnit(initUnit);
-    let toString = convertHandler.getString(
-      initNum,
-      initUnit,
-      returnNum,
-      returnUnit
-    );
+    if (number.length > 1 && unit.length > 1) {
+      return res.send('invalid number and unit');
+    } else if (number.length > 1) {
+      return res.send('invalid number');
+    } else if (unit.length > 1) {
+      return res.send('invalid unit');
+    } else {
+      let initNum = convertHandler.getNum(number);
+      let initUnit = convertHandler.getUnit(unit);
 
-    //res.json
-    res.json({ initNum, initUnit, returnNum, returnUnit, string: toString });
+      //catch some invalid inputs
+      if (!initNum && !initUnit) {
+        return res.send('invalid number and unit');
+      } else if (!initNum) {
+        return res.send('invalid number');
+      } else if (!initUnit) {
+        return res.send('invalid unit');
+      } else {
+        let returnNum = convertHandler.convert(initNum, initUnit);
+        let returnUnit = convertHandler.getReturnUnit(initUnit);
+        let string = convertHandler.getString(initNum, initUnit, returnNum, returnUnit);
+
+        //capitalise 'l'
+        if (initUnit === 'l') {
+          initUnit = 'L';
+        }
+        if (returnUnit === 'l') {
+          returnUnit = 'L';
+        }
+
+        return res.send({ initNum, initUnit, returnNum, returnUnit, string });
+      }
+    }
+
+
   });
 };
